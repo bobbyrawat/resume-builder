@@ -1,10 +1,20 @@
-HELP.md
+# Maven
 target/
 .mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 
-### STS ###
+# Build folders
+build/
+dist/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+
+# IDE Files
+
+## STS
 .apt_generated
 .classpath
 .factorypath
@@ -13,21 +23,17 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
+## IntelliJ
+.idea/
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
+## VS Code
+.vscode/
+
+## NetBeans
 /nbproject/private/
 /nbbuild/
-/dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
