@@ -26,143 +26,84 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
     private final JwtAuthenticationImplement jwtAuthenticationImplement;
 
-    //////////////////////////////////////////////////////
     // PASSWORD ENCODER
-    //////////////////////////////////////////////////////
-
     @Bean
     public PasswordEncoder passwordEncoder() {
-
         return new BCryptPasswordEncoder();
     }
 
-    //////////////////////////////////////////////////////
     // SECURITY FILTER CHAIN
-    //////////////////////////////////////////////////////
-
     @Bean
-    public SecurityFilterChain filterChain(
-            HttpSecurity http
-    ) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-
-            //////////////////////////////////////////////////////
             // CORS
-            //////////////////////////////////////////////////////
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-            .cors(cors ->
-                    cors.configurationSource(
-                            corsConfigurationSource()
-                    )
-            )
-
-            //////////////////////////////////////////////////////
             // CSRF DISABLE
-            //////////////////////////////////////////////////////
-
             .csrf(csrf -> csrf.disable())
 
-            //////////////////////////////////////////////////////
-            // STATELESS SESSION
-            //////////////////////////////////////////////////////
-
+            // SESSION STATELESS
             .sessionManagement(session ->
-                    session.sessionCreationPolicy(
-                            SessionCreationPolicy.STATELESS
-                    )
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-            //////////////////////////////////////////////////////
-            // AUTHORIZATION
-            //////////////////////////////////////////////////////
-
+            // AUTHORIZATION RULES
             .authorizeHttpRequests(auth -> auth
 
-                    //////////////////////////////////////////////////////
-                    // PUBLIC ROUTES
-                    //////////////////////////////////////////////////////
+                // PUBLIC ROUTES (IMPORTANT)
+                .requestMatchers(
+                    "/",
+                    "/error",
+                    "/api/auth/**",
+                    "/api/payment/verify"
+                ).permitAll()
 
-                    .requestMatchers(
-
-                            "/api/auth/**",
-
-                            "/api/payment/verify"
-
-                    ).permitAll()
-
-                    //////////////////////////////////////////////////////
-                    // PROTECTED ROUTES
-                    //////////////////////////////////////////////////////
-
-                    .anyRequest().authenticated()
+                // EVERYTHING ELSE PROTECTED
+                .anyRequest().authenticated()
             )
 
-            //////////////////////////////////////////////////////
             // EXCEPTION HANDLING
-            //////////////////////////////////////////////////////
-
             .exceptionHandling(ex ->
-                    ex.authenticationEntryPoint(
-                            jwtAuthenticationImplement
-                    )
+                ex.authenticationEntryPoint(jwtAuthenticationImplement)
             )
 
-            //////////////////////////////////////////////////////
             // JWT FILTER
-            //////////////////////////////////////////////////////
-
             .addFilterBefore(
-                    jwtAuthenticationFilter,
-                    UsernamePasswordAuthenticationFilter.class
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class
             );
 
         return http.build();
     }
 
-    //////////////////////////////////////////////////////
-    // CORS CONFIGURATION
-    //////////////////////////////////////////////////////
-
+    // CORS CONFIG
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration =
-                new CorsConfiguration();
+        CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                Arrays.asList(
-                        "http://localhost:5173"
-                )
+            Arrays.asList(
+                "http://localhost:5173",
+                "https://resume-builder-1-e41u.onrender.com"
+            )
         );
 
         configuration.setAllowedMethods(
-                Arrays.asList(
-                        "GET",
-                        "POST",
-                        "PUT",
-                        "PATCH",
-                        "DELETE",
-                        "OPTIONS"
-                )
+            Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         );
 
         configuration.setAllowedHeaders(
-                Arrays.asList("*")
+            Arrays.asList("*")
         );
 
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
-        source.registerCorsConfiguration(
-                "/**",
-                configuration
-        );
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }
