@@ -28,82 +28,75 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationImplement jwtAuthenticationImplement;
 
-    // PASSWORD ENCODER
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // SECURITY FILTER CHAIN
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            // CORS
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-            // CSRF DISABLE
-            .csrf(csrf -> csrf.disable())
-
-            // SESSION STATELESS
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-
-            // AUTHORIZATION RULES
-            .authorizeHttpRequests(auth -> auth
-
-                // PUBLIC ROUTES (IMPORTANT)
-                .requestMatchers(
-                    "/",
-                    "/error",
-                    "/api/auth/**",
-                    "/api/payment/verify"
-                ).permitAll()
-
-                // EVERYTHING ELSE PROTECTED
-                .anyRequest().authenticated()
-            )
-
-            // EXCEPTION HANDLING
-            .exceptionHandling(ex ->
-                ex.authenticationEntryPoint(jwtAuthenticationImplement)
-            )
-
-            // JWT FILTER
-            .addFilterBefore(
-                jwtAuthenticationFilter,
-                UsernamePasswordAuthenticationFilter.class
-            );
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/payment/verify"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex ->
+                        ex.authenticationEntryPoint(jwtAuthenticationImplement)
+                )
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
 
-    // CORS CONFIG
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(
-            Arrays.asList(
+        configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:5173",
-                "https://resume-builder-1-e41u.onrender.com"
-            )
-        );
+                "http://localhost:3000",
+                "https://resume-builder-frontend-navy-seven.vercel.app"
+        ));
 
-        configuration.setAllowedMethods(
-            Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        );
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
 
-        configuration.setAllowedHeaders(
-            Arrays.asList("*")
-        );
+        configuration.setAllowedHeaders(Arrays.asList(
+                "*"
+        ));
+
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization"
+        ));
 
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
 
         return source;
     }

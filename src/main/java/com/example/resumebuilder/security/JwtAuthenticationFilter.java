@@ -36,59 +36,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        try {
 
-        String token = null;
-        String userId = null;
+            String authHeader = request.getHeader("Authorization");
 
-        //////////////////////////////////////////////////////
-        // EXTRACT TOKEN
-        //////////////////////////////////////////////////////
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
-            token = authHeader.substring(7);
-
-            try {
-
-                userId = jwtUtil.getUserIdFromToken(token);
-
-            } catch (Exception e) {
-
-                log.error("Invalid token", e);
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                filterChain.doFilter(request, response);
+                return;
             }
-        }
 
-        //////////////////////////////////////////////////////
-        // AUTHENTICATE USER
-        //////////////////////////////////////////////////////
+            String token = authHeader.substring(7);
+            String userId = jwtUtil.getUserIdFromToken(token);
 
-        if (userId != null
-                && SecurityContextHolder
-                        .getContext()
-                        .getAuthentication() == null) {
+            if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            try {
+                if (jwtUtil.validateToken(token) && !jwtUtil.isTokenExpired(token)) {
 
-                boolean isValid =
-                        jwtUtil.validateToken(token);
-
-                boolean isExpired =
-                        jwtUtil.isTokenExpired(token);
-
-                if (isValid && !isExpired) {
-
-                    User user =
-                            userRepository.findById(userId)
-                                    .orElseThrow(() ->
-                                            new UsernameNotFoundException(
-                                                    "User not found"
-                                            )
-                                    );
-
-                    //////////////////////////////////////////////////////
-                    // STORE USER ID AS PRINCIPAL
-                    //////////////////////////////////////////////////////
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
@@ -98,19 +63,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             );
 
                     authToken.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request)
+                            new WebAuthenticationDetailsSource().buildDetails(request)
                     );
 
-                    SecurityContextHolder
-                            .getContext()
-                            .setAuthentication(authToken);
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-
-            } catch (Exception e) {
-
-                log.error("Token validation failed", e);
             }
+
+        } catch (Exception e) {
+            log.error("JWT filter error: ", e);
         }
 
         filterChain.doFilter(request, response);
