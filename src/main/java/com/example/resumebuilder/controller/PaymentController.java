@@ -27,8 +27,9 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    // ================= CREATE ORDER =================
     @PostMapping("/create-order")
-    public ResponseEntity<?> createdOrder(
+    public ResponseEntity<?> createOrder(
             @RequestBody Map<String, String> request,
             Authentication authentication
     ) {
@@ -62,36 +63,54 @@ public class PaymentController {
             return ResponseEntity.internalServerError().body(
                     Map.of(
                             "message", "Something went wrong",
-                            "errors", e.getMessage()
+                            "error", e.getMessage()
                     )
             );
         }
     }
 
+    // ================= VERIFY PAYMENT =================
     @PostMapping("/verify")
     public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> request) {
 
-        boolean isValid = paymentService.verifyPayment(
-                request.get("razorpay_order_id"),
-                request.get("razorpay_payment_id"),
-                request.get("razorpay_signature")
-        );
+        try {
 
-        if (isValid) {
-            return ResponseEntity.ok(Map.of(
-                    "message", "Payment verified successfully",
-                    "status", "success"
-            ));
+            boolean isValid = paymentService.verifyPayment(
+                    request.get("razorpay_order_id"),
+                    request.get("razorpay_payment_id"),
+                    request.get("razorpay_signature")
+            );
+
+            if (isValid) {
+                return ResponseEntity.ok(Map.of(
+                        "message", "Payment verified successfully",
+                        "status", "success",
+                        "premiumUnlocked", true
+                ));
+            }
+
+            return ResponseEntity.badRequest().body(
+                    Map.of(
+                            "message", "Payment verification failed",
+                            "status", "failed",
+                            "premiumUnlocked", false
+                    )
+            );
+
+        } catch (Exception e) {
+
+            log.error("Payment verification error", e);
+
+            return ResponseEntity.internalServerError().body(
+                    Map.of(
+                            "message", "Server error",
+                            "error", e.getMessage()
+                    )
+            );
         }
-
-        return ResponseEntity.badRequest().body(
-                Map.of(
-                        "message", "Payment verification failed",
-                        "status", "failed"
-                )
-        );
     }
 
+    // ================= PAYMENT HISTORY =================
     @GetMapping("/history")
     public ResponseEntity<?> getPaymentHistory(Authentication authentication) {
 
@@ -101,6 +120,7 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
+    // ================= ORDER DETAILS =================
     @GetMapping("/order/{orderId}")
     public ResponseEntity<?> getOrderDetails(@PathVariable String orderId) {
 

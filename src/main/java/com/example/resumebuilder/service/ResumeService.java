@@ -54,9 +54,17 @@ public class ResumeService {
             existing.setTitle(updated.getTitle());
         }
 
-        if (updated.getTemplate() != null) {
-            existing.setTemplate(updated.getTemplate());
-        }
+       if (updated.getTemplate() != null) {
+
+    if (!existing.getIsPremium() && 
+        ("template2".equals(updated.getTemplate()) ||
+         "template3".equals(updated.getTemplate()))) {
+
+        throw new RuntimeException("Upgrade to premium to use this template");
+    }
+
+    existing.setTemplate(updated.getTemplate());
+}
 
         if (updated.getProfileInfo() != null) {
             existing.setProfileInfo(updated.getProfileInfo());
