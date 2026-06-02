@@ -1,15 +1,17 @@
 package com.example.resumebuilder.util;
 
-import java.util.Date;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class JwtUtil {
@@ -19,6 +21,8 @@ public class JwtUtil {
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
+
+  
 
     public String generateToken(String userId) {
 
@@ -34,7 +38,10 @@ public class JwtUtil {
     }
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String getUserIdFromToken(String token) {
@@ -49,6 +56,7 @@ public class JwtUtil {
     }
 
     public boolean validateToken(String token) {
+
         try {
 
             Jwts.parserBuilder()
@@ -79,4 +87,9 @@ public class JwtUtil {
             return true;
         }
     }
+    @PostConstruct
+public void init() {
+    System.out.println("JWT Secret = " + jwtSecret);
+    System.out.println("JWT Secret Length = " + jwtSecret.length());
+}
 }

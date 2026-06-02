@@ -1,5 +1,6 @@
 package com.example.resumebuilder.service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,22 +36,27 @@ public class AuthService {
         user.setId(UUID.randomUUID().toString());
         user.setName(request.getName());
         user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        // ENCODE PASSWORD
-        user.setPassword(
-                passwordEncoder.encode(request.getPassword())
-        );
+        user.setSubscriptionPlan("basic");
+        user.setEmailVerified(false);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(user);
 
-        String token =
-                jwtUtil.generateToken(user.getId());
+        String token = jwtUtil.generateToken(user.getId());
 
         return AuthResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
+                .subscriptionPlan(user.getSubscriptionPlan())
+                .emailVerified(user.isEmailVerified())
                 .token(token)
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
@@ -58,86 +64,86 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
 
-        User user = userRepository
-                .findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new RuntimeException("User not found")
-                );
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // CHECK HASHED PASSWORD
-        boolean matches =
-                passwordEncoder.matches(
-                        request.getPassword(),
-                        user.getPassword()
-                );
+        boolean matches = passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword());
 
         if (!matches) {
             throw new RuntimeException("Invalid credentials");
         }
 
-        String token =
-                jwtUtil.generateToken(user.getId());
+        String token = jwtUtil.generateToken(user.getId());
 
         return AuthResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
+                .subscriptionPlan(user.getSubscriptionPlan())
+                .emailVerified(user.isEmailVerified())
                 .token(token)
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
-   //////////////////////////////////////////////////////
-// VERIFY EMAIL
-//////////////////////////////////////////////////////
+    // ================= VERIFY EMAIL =================
 
-public void verifyEmail(String token) {
+    public void verifyEmail(String token) {
 
-    System.out.println(
-            "Email verified with token: " + token
-    );
-}
-
-//////////////////////////////////////////////////////
-// RESEND VERIFICATION
-//////////////////////////////////////////////////////
-
-public void resendVerification(String email) {
-
-    System.out.println(
-            "Resend verification email to: " + email
-    );
-}
-
-
-    // ================= PROFILE =================
-public AuthResponse getProfile(Object principalObject) {
-
-    String userId;
-
-    // ✅ FIX: handle Spring Security properly
-    if (principalObject instanceof org.springframework.security.core.userdetails.UserDetails) {
-        userId = ((org.springframework.security.core.userdetails.UserDetails) principalObject).getUsername();
-    }
-    else if (principalObject instanceof String) {
-        userId = (String) principalObject;
-    }
-    else {
-        throw new RuntimeException(
-                "Invalid authentication principal: " + principalObject
+        System.out.println(
+                "Email verified with token: " + token
         );
     }
 
-    User user =
-            userRepository.findById(userId)
-                    .orElseThrow(() ->
-                            new RuntimeException("User not found")
-                    );
+    // ================= RESEND VERIFICATION =================
 
-    return AuthResponse.builder()
-            .id(user.getId())
-            .name(user.getName())
-            .email(user.getEmail())
-            .build();
-}
- 
+    public void resendVerification(String email) {
+
+        System.out.println(
+                "Resend verification email to: " + email
+        );
+    }
+
+    // ================= PROFILE =================
+
+    public AuthResponse getProfile(Object principalObject) {
+
+        String userId;
+
+        if (principalObject instanceof org.springframework.security.core.userdetails.UserDetails) {
+
+            userId = ((org.springframework.security.core.userdetails.UserDetails)
+                    principalObject).getUsername();
+
+        } else if (principalObject instanceof String) {
+
+            userId = (String) principalObject;
+
+        } else {
+
+            throw new RuntimeException(
+                    "Invalid authentication principal: " + principalObject
+            );
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+        return AuthResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .profileImageUrl(user.getProfileImageUrl())
+                .subscriptionPlan(user.getSubscriptionPlan())
+                .emailVerified(user.isEmailVerified())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
 }
