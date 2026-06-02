@@ -1,11 +1,11 @@
 package com.example.resumebuilder.security;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -46,32 +46,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             String token = authHeader.substring(7);
+
+            if (!jwtUtil.validateToken(token)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String userId = jwtUtil.getUserIdFromToken(token);
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                if (jwtUtil.validateToken(token) && !jwtUtil.isTokenExpired(token)) {
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
 
-                    User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                user.getId(),
+                                null,
+                                List.of(new SimpleGrantedAuthority("USER"))
+                        );
 
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    user.getId(),
-                                    null,
-                                    new ArrayList<>()
-                            );
+                auth.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
 
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
-
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+                SecurityContextHolder.getContext().setAuthentication(auth);
             }
 
         } catch (Exception e) {
-            log.error("JWT filter error: ", e);
+            log.error("JWT filter error", e);
         }
 
         filterChain.doFilter(request, response);

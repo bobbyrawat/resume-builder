@@ -1,39 +1,78 @@
- package com.example.resumebuilder.controller;
+package com.example.resumebuilder.controller;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
+import com.example.resumebuilder.document.Resume;
+import com.example.resumebuilder.service.ResumeService;
 
 @RestController
 @RequestMapping("/api/resume")
-@RequiredArgsConstructor
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://resume-builder-frontend-navy-seven.vercel.app"
+})
 public class ResumeController {
 
-    // TEMP SIMPLE CREATE RESUME (you can connect service later)
+    private final ResumeService resumeService;
+
+    public ResumeController(ResumeService resumeService) {
+        this.resumeService = resumeService;
+    }
+
+    // CREATE
     @PostMapping
-    public Map<String, Object> createResume(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestBody Map<String, Object> request
+    public ResponseEntity<?> createResume(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal String userId
     ) {
+        String title = (String) body.getOrDefault("title", "My Resume");
 
-        // just log token for now
-        System.out.println("Auth Header: " + authHeader);
-        System.out.println("Request Body: " + request);
+        Resume resume = resumeService.createResume(title, userId);
 
-        Map<String, Object> response = new HashMap<>();
+        return ResponseEntity.ok(resume);
+    }
 
-        response.put("id", UUID.randomUUID().toString());
-        response.put("title", request.get("title"));
-        response.put("message", "Resume created successfully");
+    // GET
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getResume(
+            @PathVariable String id,
+            @AuthenticationPrincipal String userId
+    ) {
+        Resume resume = resumeService.getResumeById(id, userId);
+        return ResponseEntity.ok(resume);
+    }
 
-        return response;
+    // UPDATE
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateResume(
+            @PathVariable String id,
+            @RequestBody Resume body,
+            @AuthenticationPrincipal String userId
+    ) {
+        Resume updated = resumeService.updateResume(id, body, userId);
+        return ResponseEntity.ok(updated);
+    }
+
+    // DELETE
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteResume(
+            @PathVariable String id,
+            @AuthenticationPrincipal String userId
+    ) {
+        resumeService.deleteResume(id, userId);
+        return ResponseEntity.ok(Map.of("message", "Deleted"));
     }
 }
